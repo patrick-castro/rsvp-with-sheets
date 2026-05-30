@@ -1,8 +1,10 @@
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 
-import { NAMES } from "@/data/names"
-import { rsvpSchema, type RsvpFormValues } from "@/schemas/rsvp"
+import { nameSearchSchema, type NameSearchValues } from "@/schemas/nameSearch"
+import { sheets } from "@/services/sheets"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -19,22 +21,35 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 
 export default function Home() {
-  const form = useForm<RsvpFormValues>({
-    resolver: zodResolver(rsvpSchema),
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
+
+  const form = useForm<NameSearchValues>({
+    resolver: zodResolver(nameSearchSchema),
     defaultValues: { name: "" },
   })
 
-  function onSubmit(values: RsvpFormValues) {
-    console.log("RSVP submitted:", values)
+  async function onSubmit(values: NameSearchValues) {
+    setLoading(true)
+    setApiError(null)
+
+    try {
+      const result = await sheets.search(values.name)
+
+      if (result.found) {
+        navigate("/found", { state: { guests: result.guests, query: values.name } })
+      } else {
+        navigate("/not-found", { state: { query: values.name } })
+      }
+    } catch {
+      setApiError("Unable to reach the RSVP service. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -43,7 +58,7 @@ export default function Home() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">You're Invited</CardTitle>
           <CardDescription>
-            Select your name below to confirm your attendance.
+            Enter your name below and we'll look you up on the guest list.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -56,28 +71,17 @@ export default function Home() {
                   <FormItem>
                     <FormLabel>Your Name</FormLabel>
                     <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select your name" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {NAMES.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input placeholder="e.g. Patrick Castro" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                Confirm RSVP
+              {apiError && (
+                <p className="text-sm text-destructive">{apiError}</p>
+              )}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Searching…" : "Find My Name"}
               </Button>
             </form>
           </Form>
