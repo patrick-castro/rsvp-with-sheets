@@ -57,7 +57,7 @@ export default function Admin() {
       setGuests((prev) =>
         prev.map((g) =>
           g.id === guest.id
-            ? { ...g, status: status as Guest["status"], ...(isReset && { notes: "", updatedAt: "" }) }
+            ? { ...g, status: status as Guest["status"], ...(isReset && { notes: "" }) }
             : g
         )
       )
@@ -136,7 +136,7 @@ export default function Admin() {
               <TableHead>Name</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Notes</TableHead>
-              <TableHead>Updated</TableHead>
+              <TableHead>Last updated</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
