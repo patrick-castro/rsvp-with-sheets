@@ -35,4 +35,10 @@ export const sheets = {
 
   updateStatus: (id: string, status: string, note: string) =>
     get({ action: "updateStatus", id, status, note }),
+
+  updateName: (id: string, name: string) =>
+    get({ action: "updateName", id, name }),
+
+  deleteGuest: (id: string) =>
+    get({ action: "deleteGuest", id }),
 }

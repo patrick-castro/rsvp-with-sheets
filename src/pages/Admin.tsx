@@ -1,8 +1,17 @@
-import { useEffect, useState } from "react"
-import { sheets, type Guest } from "@/services/sheets"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useEffect, useState } from 'react';
+import { Check, Pencil, X } from 'lucide-react';
+import { sheets, type Guest } from '@/services/sheets';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -10,126 +19,198 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from '@/components/ui/table';
 
-type Filter = "all" | "pending" | "confirmed" | "declined"
+type Filter = 'all' | 'pending' | 'confirmed' | 'declined';
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  declined: "Declined",
-}
+  pending: 'Pending',
+  confirmed: 'Confirmed',
+  declined: 'Declined',
+};
 
-const STATUS_VARIANTS: Record<string, "secondary" | "default" | "destructive"> = {
-  pending: "secondary",
-  confirmed: "default",
-  declined: "destructive",
-}
+const STATUS_VARIANTS: Record<string, 'secondary' | 'default' | 'destructive'> =
+  {
+    pending: 'secondary',
+    confirmed: 'default',
+    declined: 'destructive',
+  };
+
+type PendingEdit = { id: string; oldName: string; newName: string };
+type PendingDelete = { id: string; name: string };
 
 export default function Admin() {
-  const [guests, setGuests] = useState<Guest[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<Filter>("all")
-  const [newName, setNewName] = useState("")
-  const [addingGuest, setAddingGuest] = useState(false)
-  const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [newName, setNewName] = useState('');
+  const [addingGuest, setAddingGuest] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Inline name edit
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [pendingEdit, setPendingEdit] = useState<PendingEdit | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+
+  // Delete
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadGuests()
-  }, [])
+    loadGuests();
+  }, []);
 
   async function loadGuests() {
-    setLoading(true)
+    setLoading(true);
     try {
-      const data = await sheets.list()
-      setGuests(Array.isArray(data) ? data : [])
+      const data = await sheets.list();
+      setGuests(Array.isArray(data) ? data : []);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function handleStatusChange(guest: Guest, status: string) {
-    const isReset = status === "pending"
-    const note = isReset ? "" : (guest.notes ?? "")
-    setUpdatingId(guest.id)
+    const isReset = status === 'pending';
+    const note = isReset ? '' : (guest.notes ?? '');
+    setUpdatingId(guest.id);
     try {
-      await sheets.updateStatus(guest.id, status, note)
+      await sheets.updateStatus(guest.id, status, note);
       setGuests((prev) =>
         prev.map((g) =>
           g.id === guest.id
-            ? { ...g, status: status as Guest["status"], ...(isReset && { notes: "" }) }
-            : g
-        )
-      )
+            ? {
+                ...g,
+                status: status as Guest['status'],
+                ...(isReset ? { notes: '' } : { updatedAt: new Date().toISOString() }),
+              }
+            : g,
+        ),
+      );
     } finally {
-      setUpdatingId(null)
+      setUpdatingId(null);
     }
   }
 
   async function handleAddGuest() {
-    const name = newName.trim()
-    if (!name) return
-    setAddingGuest(true)
+    const name = newName.trim();
+    if (!name) return;
+    setAddingGuest(true);
     try {
-      await sheets.addGuest(name)
-      setNewName("")
-      await loadGuests()
+      await sheets.addGuest(name);
+      setNewName('');
+      await loadGuests();
     } finally {
-      setAddingGuest(false)
+      setAddingGuest(false);
     }
   }
 
-  const filtered = guests.filter((g) => filter === "all" || g.status === filter)
-  const counts = {
-    all: guests.length,
-    pending: guests.filter((g) => g.status === "pending").length,
-    confirmed: guests.filter((g) => g.status === "confirmed").length,
-    declined: guests.filter((g) => g.status === "declined").length,
+  function startEditing(guest: Guest) {
+    setEditingId(guest.id);
+    setEditingName(guest.name);
   }
 
+  function commitEdit(guest: Guest) {
+    const trimmed = editingName.trim();
+    if (trimmed && trimmed !== guest.name) {
+      setPendingEdit({ id: guest.id, oldName: guest.name, newName: trimmed });
+    }
+    setEditingId(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditingName('');
+  }
+
+  async function confirmRename() {
+    if (!pendingEdit) return;
+    setRenamingId(pendingEdit.id);
+    try {
+      await sheets.updateName(pendingEdit.id, pendingEdit.newName);
+      setGuests((prev) =>
+        prev.map((g) =>
+          g.id === pendingEdit.id ? { ...g, name: pendingEdit.newName } : g,
+        ),
+      );
+    } finally {
+      setRenamingId(null);
+      setPendingEdit(null);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeletingId(pendingDelete.id);
+    try {
+      await sheets.deleteGuest(pendingDelete.id);
+      setGuests((prev) => prev.filter((g) => g.id !== pendingDelete.id));
+    } finally {
+      setDeletingId(null);
+      setPendingDelete(null);
+    }
+  }
+
+  const filtered = guests.filter((g) => filter === 'all' || g.status === filter);
+  const counts = {
+    all: guests.length,
+    pending: guests.filter((g) => g.status === 'pending').length,
+    confirmed: guests.filter((g) => g.status === 'confirmed').length,
+    declined: guests.filter((g) => g.status === 'declined').length,
+  };
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Guest List</h1>
-        <Button variant="outline" size="sm" onClick={loadGuests} disabled={loading}>
-          {loading ? "Loading…" : "Refresh"}
+    <div className='max-w-5xl mx-auto px-4 py-8 space-y-6'>
+      <div className='flex items-center justify-between'>
+        <h1 className='text-2xl font-bold'>Guest List</h1>
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={loadGuests}
+          disabled={loading}
+        >
+          {loading ? 'Loading…' : 'Refresh'}
         </Button>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {(["all", "pending", "confirmed", "declined"] as Filter[]).map((f) => (
+      <div className='flex gap-2 flex-wrap'>
+        {(['all', 'pending', 'confirmed', 'declined'] as Filter[]).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               filter === f
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted hover:bg-muted/80"
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80'
             }`}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}{" "}
-            <span className="opacity-70">({counts[f]})</span>
+            {f.charAt(0).toUpperCase() + f.slice(1)}{' '}
+            <span className='opacity-70'>({counts[f]})</span>
           </button>
         ))}
       </div>
 
       {/* Add guest */}
-      <div className="flex gap-2">
+      <div className='flex gap-2'>
         <Input
-          placeholder="Add a guest name…"
+          placeholder='Add a guest name…'
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleAddGuest()}
-          className="max-w-xs"
+          onKeyDown={(e) => e.key === 'Enter' && handleAddGuest()}
+          className='max-w-xs'
         />
-        <Button onClick={handleAddGuest} disabled={addingGuest || !newName.trim()}>
-          {addingGuest ? "Adding…" : "Add Guest"}
+        <Button
+          onClick={handleAddGuest}
+          disabled={addingGuest || !newName.trim()}
+        >
+          {addingGuest ? 'Adding…' : 'Add Guest'}
         </Button>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className='rounded-md border'>
         <Table>
           <TableHeader>
             <TableRow>
@@ -143,65 +224,129 @@ export default function Admin() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                <TableCell
+                  colSpan={5}
+                  className='text-center text-muted-foreground py-8'
+                >
                   Loading guests…
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                <TableCell
+                  colSpan={5}
+                  className='text-center text-muted-foreground py-8'
+                >
                   No guests in this category.
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((guest) => (
                 <TableRow key={guest.id}>
-                  <TableCell className="font-medium">{guest.name}</TableCell>
+                  <TableCell className='font-medium'>
+                    {editingId === guest.id ? (
+                      <span className='flex items-center gap-1 w-full'>
+                        <Input
+                          autoFocus
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              commitEdit(guest);
+                            }
+                          }}
+                          className='h-8 text-sm flex-1'
+                        />
+                        <span className='flex items-center gap-1 ml-auto pl-1'>
+                          <button
+                            type='button'
+                            onClick={() => commitEdit(guest)}
+                            disabled={!editingName.trim() || editingName.trim() === guest.name}
+                            className='text-green-600 hover:text-green-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            type='button'
+                            onClick={cancelEdit}
+                            className='text-red-500 hover:text-red-600 transition-colors'
+                          >
+                            <X size={14} />
+                          </button>
+                        </span>
+                      </span>
+                    ) : (
+                      <span className='flex items-center gap-2 group'>
+                        <span>{guest.name}</span>
+                        <button
+                          type='button'
+                          onClick={() => startEditing(guest)}
+                          className='opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground'
+                        >
+                          <Pencil size={13} />
+                        </button>
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANTS[guest.status] ?? "secondary"}>
+                    <Badge
+                      variant={STATUS_VARIANTS[guest.status] ?? 'secondary'}
+                    >
                       {STATUS_LABELS[guest.status] ?? guest.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                    {guest.notes || "—"}
+                  <TableCell className='text-sm text-muted-foreground max-w-50 truncate'>
+                    {guest.notes || '—'}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className='text-sm text-muted-foreground'>
                     {guest.updatedAt
                       ? new Date(guest.updatedAt).toLocaleDateString()
-                      : "—"}
+                      : '—'}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      {guest.status !== "confirmed" && (
+                    <div className='flex gap-1'>
+                      {guest.status !== 'confirmed' && (
                         <Button
-                          size="sm"
-                          variant="outline"
+                          size='sm'
+                          variant='outline'
                           disabled={updatingId === guest.id}
-                          onClick={() => handleStatusChange(guest, "confirmed")}
+                          onClick={() => handleStatusChange(guest, 'confirmed')}
                         >
                           Confirm
                         </Button>
                       )}
-                      {guest.status !== "declined" && (
+                      {guest.status !== 'declined' && (
                         <Button
-                          size="sm"
-                          variant="outline"
+                          size='sm'
+                          variant='outline'
                           disabled={updatingId === guest.id}
-                          onClick={() => handleStatusChange(guest, "declined")}
+                          onClick={() => handleStatusChange(guest, 'declined')}
                         >
                           Decline
                         </Button>
                       )}
-                      {guest.status !== "pending" && (
+                      {guest.status !== 'pending' && (
                         <Button
-                          size="sm"
-                          variant="ghost"
+                          size='sm'
+                          variant='ghost'
                           disabled={updatingId === guest.id}
-                          onClick={() => handleStatusChange(guest, "pending")}
+                          onClick={() => handleStatusChange(guest, 'pending')}
                         >
                           Reset
                         </Button>
                       )}
+                      <Button
+                        size='sm'
+                        variant='ghost'
+                        className='text-destructive hover:text-destructive'
+                        disabled={deletingId === guest.id}
+                        onClick={() =>
+                          setPendingDelete({ id: guest.id, name: guest.name })
+                        }
+                      >
+                        Delete
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -210,6 +355,76 @@ export default function Admin() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Rename confirmation */}
+      <Dialog
+        open={!!pendingEdit}
+        onOpenChange={(open) => !open && setPendingEdit(null)}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Rename guest</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to edit{' '}
+              <span className='font-medium text-foreground'>
+                "{pendingEdit?.oldName}"
+              </span>{' '}
+              to{' '}
+              <span className='font-medium text-foreground'>
+                "{pendingEdit?.newName}"
+              </span>
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => setPendingEdit(null)}
+              disabled={!!renamingId}
+            >
+              Cancel
+            </Button>
+            <Button onClick={confirmRename} disabled={!!renamingId}>
+              {renamingId ? 'Saving…' : 'Yes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <Dialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete guest</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{' '}
+              <span className='font-medium text-foreground'>
+                "{pendingDelete?.name}"
+              </span>
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => setPendingDelete(null)}
+              disabled={!!deletingId}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant='destructive'
+              onClick={confirmDelete}
+              disabled={!!deletingId}
+            >
+              {deletingId ? 'Deleting…' : 'Yes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
+  );
 }
