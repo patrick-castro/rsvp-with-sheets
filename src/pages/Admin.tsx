@@ -49,12 +49,16 @@ export default function Admin() {
   }
 
   async function handleStatusChange(guest: Guest, status: string) {
+    const isReset = status === "pending"
+    const note = isReset ? "" : (guest.notes ?? "")
     setUpdatingId(guest.id)
     try {
-      await sheets.updateStatus(guest.id, status, guest.notes ?? "")
+      await sheets.updateStatus(guest.id, status, note)
       setGuests((prev) =>
         prev.map((g) =>
-          g.id === guest.id ? { ...g, status: status as Guest["status"] } : g
+          g.id === guest.id
+            ? { ...g, status: status as Guest["status"], ...(isReset && { notes: "", updatedAt: "" }) }
+            : g
         )
       )
     } finally {
