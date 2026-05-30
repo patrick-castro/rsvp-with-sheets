@@ -31,6 +31,7 @@ type Step =
   | { id: 'search' }
   | { id: 'found'; guests: Guest[]; query: string }
   | { id: 'not-found'; query: string }
+  | { id: 'already-rsvped'; name: string; status: 'confirmed' | 'declined' }
   | { id: 'success'; name: string; status: 'confirmed' | 'declined' };
 
 // ─── Search ──────────────────────────────────────────────────────────────────
@@ -304,16 +305,69 @@ function SuccessStep({ name, status, onBack }: SuccessStepProps) {
   );
 }
 
+// ─── Already RSVPed ───────────────────────────────────────────────────────────
+
+type AlreadyRsvpedStepProps = {
+  name: string;
+  status: 'confirmed' | 'declined';
+  onBack: () => void;
+};
+
+function AlreadyRsvpedStep({ name, status, onBack }: AlreadyRsvpedStepProps) {
+  const confirmed = status === 'confirmed';
+
+  return (
+    <Card className='w-full max-w-sm'>
+      <CardHeader className='text-center'>
+        <CardTitle className='text-2xl'>
+          {confirmed ? 'RSVP Confirmed' : 'RSVP Declined'}
+        </CardTitle>
+        <CardDescription>
+          {name}'s RSVP has already been {confirmed ? 'confirmed' : 'declined'}.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className='space-y-6'>
+        <p className='text-sm text-muted-foreground text-center'>
+          If you have questions, feel free to reach out:
+        </p>
+        <div className='rounded-md border p-4 space-y-1 text-sm text-center'>
+          {/* Replace with real contact details */}
+          <p className='font-medium'>Contact the couple</p>
+          <p className='text-muted-foreground'>+63 900 000 0000</p>
+          <p className='text-muted-foreground'>hello@example.com</p>
+        </div>
+        <Button variant='outline' className='w-full' onClick={onBack}>
+          Back to RSVP
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const [step, setStep] = useState<Step>({ id: 'search' });
 
+  function handleFound(guests: Guest[], query: string) {
+    const pending = guests.filter((g) => g.status === 'pending');
+    if (pending.length > 0) {
+      setStep({ id: 'found', guests: pending, query });
+    } else {
+      const guest = guests[0];
+      setStep({
+        id: 'already-rsvped',
+        name: guest.name,
+        status: guest.status as 'confirmed' | 'declined',
+      });
+    }
+  }
+
   return (
     <div className='min-h-screen flex items-center justify-center px-4 py-8'>
       {step.id === 'search' && (
         <SearchStep
-          onFound={(guests, query) => setStep({ id: 'found', guests, query })}
+          onFound={handleFound}
           onNotFound={(query) => setStep({ id: 'not-found', query })}
         />
       )}
@@ -327,6 +381,13 @@ export default function Home() {
       {step.id === 'not-found' && (
         <NotFoundStep
           query={step.query}
+          onBack={() => setStep({ id: 'search' })}
+        />
+      )}
+      {step.id === 'already-rsvped' && (
+        <AlreadyRsvpedStep
+          name={step.name}
+          status={step.status}
           onBack={() => setStep({ id: 'search' })}
         />
       )}
