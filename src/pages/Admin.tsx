@@ -36,6 +36,10 @@ const STATUS_VARIANTS: Record<string, 'secondary' | 'default' | 'destructive'> =
     declined: 'destructive',
   };
 
+const STATUS_CLASSES: Record<string, string> = {
+  confirmed: 'bg-green-500/10 text-green-700 dark:text-green-400',
+};
+
 type PendingEdit = { id: string; oldName: string; newName: string };
 type PendingDelete = { id: string; name: string };
 
@@ -54,7 +58,9 @@ export default function Admin() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
 
   // Delete
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
+    null,
+  );
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,7 +89,8 @@ export default function Admin() {
             ? {
                 ...g,
                 status: status as Guest['status'],
-                ...(isReset ? { notes: '' } : { updatedAt: new Date().toISOString() }),
+                ...(isReset && { notes: '' }),
+                updatedAt: new Date().toISOString(),
               }
             : g,
         ),
@@ -152,7 +159,9 @@ export default function Admin() {
     }
   }
 
-  const filtered = guests.filter((g) => filter === 'all' || g.status === filter);
+  const filtered = guests.filter(
+    (g) => filter === 'all' || g.status === filter,
+  );
   const counts = {
     all: guests.length,
     pending: guests.filter((g) => g.status === 'pending').length,
@@ -262,7 +271,10 @@ export default function Admin() {
                           <button
                             type='button'
                             onClick={() => commitEdit(guest)}
-                            disabled={!editingName.trim() || editingName.trim() === guest.name}
+                            disabled={
+                              !editingName.trim() ||
+                              editingName.trim() === guest.name
+                            }
                             className='text-green-600 hover:text-green-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
                           >
                             <Check size={14} />
@@ -292,6 +304,7 @@ export default function Admin() {
                   <TableCell>
                     <Badge
                       variant={STATUS_VARIANTS[guest.status] ?? 'secondary'}
+                      className={STATUS_CLASSES[guest.status]}
                     >
                       {STATUS_LABELS[guest.status] ?? guest.status}
                     </Badge>
@@ -301,7 +314,10 @@ export default function Admin() {
                   </TableCell>
                   <TableCell className='text-sm text-muted-foreground'>
                     {guest.updatedAt
-                      ? new Date(guest.updatedAt).toLocaleDateString()
+                      ? new Date(guest.updatedAt).toLocaleString(undefined, {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        })
                       : '—'}
                   </TableCell>
                   <TableCell>
