@@ -29,7 +29,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 // Replace with the couple's wedding date
 const COUPLE_NAMES = 'Gelo & Princess';
-const WEDDING_DATE = 'The Twenty-Fourth of July, Two Thousand Twenty-Six';
+const WEDDING_DATE = 'July 24, 2026';
 
 type Step =
   | { id: 'search' }
@@ -106,7 +106,7 @@ function SearchStep({ onFound, onNotFound }: SearchStepProps) {
         <CardTitle className='font-heading text-4xl font-normal tracking-wide text-foreground'>
           {COUPLE_NAMES}
         </CardTitle>
-        <p className='font-sans text-sm text-muted-foreground italic'>
+        <p className='font-sans text-base font-semibold tracking-[0.15em] text-primary uppercase'>
           {WEDDING_DATE}
         </p>
         <Ornament />
