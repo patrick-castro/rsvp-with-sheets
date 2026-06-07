@@ -1,7 +1,7 @@
 {
   "name": "vite-rsvp-temp",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": ". ~/.nvm/nvm.sh && nvm use && vite",
