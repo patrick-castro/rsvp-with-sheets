@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Check, Pencil, X } from 'lucide-react';
+import { auth } from '@/services/auth';
 import { sheets, type Guest } from '@/services/sheets';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -43,7 +45,13 @@ const STATUS_CLASSES: Record<string, string> = {
 type PendingEdit = { id: string; oldName: string; newName: string };
 type PendingDelete = { id: string; name: string };
 
-export default function Admin() {
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+type AdminDashboardProps = {
+  onLogout: () => void;
+};
+
+function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>('all');
@@ -173,14 +181,19 @@ export default function Admin() {
     <div className='max-w-5xl mx-auto px-4 py-8 space-y-6'>
       <div className='flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>Guest List</h1>
-        <Button
-          variant='outline'
-          size='sm'
-          onClick={loadGuests}
-          disabled={loading}
-        >
-          {loading ? 'Loading…' : 'Refresh'}
-        </Button>
+        <div className='flex items-center gap-2'>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={loadGuests}
+            disabled={loading}
+          >
+            {loading ? 'Loading…' : 'Refresh'}
+          </Button>
+          <Button variant='ghost' size='sm' onClick={onLogout}>
+            Log out
+          </Button>
+        </div>
       </div>
 
       {/* Filter tabs */}
@@ -442,5 +455,44 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ─── Gate ─────────────────────────────────────────────────────────────────────
+
+type AuthState = 'checking' | 'signed-in' | 'signed-out';
+
+export default function Admin() {
+  const [authState, setAuthState] = useState<AuthState>('checking');
+
+  useEffect(() => {
+    let cancelled = false;
+    auth.checkSession().then((authenticated) => {
+      if (!cancelled) setAuthState(authenticated ? 'signed-in' : 'signed-out');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (authState === 'checking') {
+    return (
+      <div className='flex min-h-screen items-center justify-center text-sm text-muted-foreground'>
+        Checking session…
+      </div>
+    );
+  }
+
+  if (authState === 'signed-out') {
+    return <Navigate to='/login' replace />;
+  }
+
+  return (
+    <AdminDashboard
+      onLogout={() => {
+        auth.logout();
+        setAuthState('signed-out');
+      }}
+    />
   );
 }
