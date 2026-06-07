@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createSessionToken } from './_lib/token';
+import { createSessionToken } from './_lib/token.js';
 
 function hash(value: string): Buffer {
   return createHash('sha256').update(value).digest();
