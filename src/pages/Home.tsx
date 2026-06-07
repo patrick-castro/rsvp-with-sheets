@@ -287,7 +287,7 @@ function FoundStep({ guests, onSuccess, onBack }: FoundStepProps) {
         )}
 
         <Button
-          variant='ghost'
+          variant='secondary'
           className='w-full font-sans text-sm tracking-wide'
           onClick={onBack}
         >
