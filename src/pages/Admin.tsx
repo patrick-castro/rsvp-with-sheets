@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Check, Pencil, X } from 'lucide-react';
 import { auth } from '@/services/auth';
 import { sheets, type Guest } from '@/services/sheets';
@@ -87,7 +87,7 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   async function handleStatusChange(guest: Guest, status: string) {
     const isReset = status === 'pending';
-    const note = isReset ? '' : (guest.notes ?? '');
+    const note = isReset ? '' : (guest.message ?? '');
     setUpdatingId(guest.id);
     try {
       await sheets.updateStatus(guest.id, status, note);
@@ -97,7 +97,7 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
             ? {
                 ...g,
                 status: status as Guest['status'],
-                ...(isReset && { notes: '' }),
+                ...(isReset && { message: '' }),
                 updatedAt: new Date().toISOString(),
               }
             : g,
@@ -182,6 +182,9 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
       <div className='flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>Guest List</h1>
         <div className='flex items-center gap-2'>
+          <Button variant='outline' size='sm' asChild>
+            <Link to='/rsvp'>Back to RSVP</Link>
+          </Button>
           <Button
             variant='outline'
             size='sm'
@@ -238,16 +241,17 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Notes</TableHead>
+              <TableHead>Message</TableHead>
               <TableHead>Last updated</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Response</TableHead>
+              <TableHead className='text-right'>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className='text-center text-muted-foreground py-8'
                 >
                   Loading guests…
@@ -256,7 +260,7 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className='text-center text-muted-foreground py-8'
                 >
                   No guests in this category.
@@ -322,8 +326,8 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       {STATUS_LABELS[guest.status] ?? guest.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className='text-sm text-muted-foreground max-w-50 truncate'>
-                    {guest.notes || '—'}
+                  <TableCell className='text-sm text-muted-foreground max-w-xs whitespace-pre-wrap wrap-break-word'>
+                    {guest.message || '—'}
                   </TableCell>
                   <TableCell className='text-sm text-muted-foreground'>
                     {guest.updatedAt
@@ -339,8 +343,11 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <Button
                           size='sm'
                           variant='outline'
+                          className='bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-700 dark:text-green-400 dark:hover:bg-green-500/20'
                           disabled={updatingId === guest.id}
-                          onClick={() => handleStatusChange(guest, 'confirmed')}
+                          onClick={() =>
+                            handleStatusChange(guest, 'confirmed')
+                          }
                         >
                           Confirm
                         </Button>
@@ -348,17 +355,21 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       {guest.status !== 'declined' && (
                         <Button
                           size='sm'
-                          variant='outline'
+                          variant='destructive'
                           disabled={updatingId === guest.id}
                           onClick={() => handleStatusChange(guest, 'declined')}
                         >
                           Decline
                         </Button>
                       )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className='flex justify-end gap-1'>
                       {guest.status !== 'pending' && (
                         <Button
                           size='sm'
-                          variant='ghost'
+                          variant='outline'
                           disabled={updatingId === guest.id}
                           onClick={() => handleStatusChange(guest, 'pending')}
                         >
@@ -367,8 +378,8 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       )}
                       <Button
                         size='sm'
-                        variant='ghost'
-                        className='text-destructive hover:text-destructive'
+                        variant='outline'
+                        className='text-destructive hover:text-destructive hover:bg-destructive/10'
                         disabled={deletingId === guest.id}
                         onClick={() =>
                           setPendingDelete({ id: guest.id, name: guest.name })

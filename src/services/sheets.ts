@@ -11,7 +11,7 @@ export type Guest = {
   id: string
   name: string
   status: "pending" | "confirmed" | "declined"
-  notes?: string
+  message?: string
   createdAt?: string
   updatedAt?: string
 }

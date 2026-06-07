@@ -240,6 +240,7 @@ function FoundStep({ guests, onSuccess, onBack }: FoundStepProps) {
                       <Textarea
                         placeholder='Write a message to the couple…'
                         rows={3}
+                        maxLength={750}
                         className='border-border/80 bg-background/60 font-sans text-base'
                         {...field}
                       />
