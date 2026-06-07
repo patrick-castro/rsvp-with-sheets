@@ -38,12 +38,12 @@ type Step =
   | { id: 'already-rsvped'; name: string; status: 'confirmed' | 'declined' }
   | { id: 'success'; name: string; status: 'confirmed' | 'declined' };
 
-const cardClass =
+export const cardClass =
   'w-full max-w-md gap-7 border border-primary/15 py-10 shadow-[0_30px_70px_-35px_oklch(0.32_0.025_60_/_0.45)]';
 
 // ─── Shared bits ──────────────────────────────────────────────────────────────
 
-function Ornament() {
+export function Ornament() {
   return (
     <div
       aria-hidden
@@ -56,7 +56,7 @@ function Ornament() {
   );
 }
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
+export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <p className='font-sans text-xs tracking-[0.35em] text-primary uppercase'>
       {children}
