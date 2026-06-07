@@ -97,8 +97,9 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
             ? {
                 ...g,
                 status: status as Guest['status'],
-                ...(isReset && { message: '' }),
-                updatedAt: new Date().toISOString(),
+                ...(isReset
+                  ? { message: '', updatedAt: undefined }
+                  : { updatedAt: new Date().toISOString() }),
               }
             : g,
         ),
