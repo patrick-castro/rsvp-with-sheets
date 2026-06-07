@@ -206,7 +206,7 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               filter === f
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted hover:bg-muted/80'
@@ -237,15 +237,15 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
       {/* Table */}
       <div className='rounded-md border'>
-        <Table>
+        <Table className='table-fixed min-w-3xl'>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Message</TableHead>
-              <TableHead>Last updated</TableHead>
-              <TableHead>Response</TableHead>
-              <TableHead className='text-right'>Actions</TableHead>
+              <TableHead className='w-[20%]'>Name</TableHead>
+              <TableHead className='w-[10%]'>Status</TableHead>
+              <TableHead className='w-[26%]'>Message</TableHead>
+              <TableHead className='w-[14%]'>Last updated</TableHead>
+              <TableHead className='w-[15%]'>Response</TableHead>
+              <TableHead className='w-[15%] text-right'>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -270,7 +270,7 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
             ) : (
               filtered.map((guest) => (
                 <TableRow key={guest.id}>
-                  <TableCell className='font-medium'>
+                  <TableCell className='font-medium whitespace-normal wrap-break-word'>
                     {editingId === guest.id ? (
                       <span className='flex items-center gap-1 w-full'>
                         <Input
@@ -307,8 +307,8 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         </span>
                       </span>
                     ) : (
-                      <span className='flex items-center gap-2 group'>
-                        <span>{guest.name}</span>
+                      <span className='flex items-center gap-2 group min-w-0'>
+                        <span className='min-w-0 wrap-break-word'>{guest.name}</span>
                         <button
                           type='button'
                           onClick={() => startEditing(guest)}
@@ -327,7 +327,7 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       {STATUS_LABELS[guest.status] ?? guest.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className='text-sm text-muted-foreground max-w-xs whitespace-pre-wrap wrap-break-word'>
+                  <TableCell className='text-sm text-muted-foreground whitespace-pre-wrap wrap-break-word'>
                     {guest.message || '—'}
                   </TableCell>
                   <TableCell className='text-sm text-muted-foreground'>
@@ -339,7 +339,7 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       : '—'}
                   </TableCell>
                   <TableCell>
-                    <div className='flex gap-1'>
+                    <div className='flex flex-wrap gap-1'>
                       {guest.status !== 'confirmed' && (
                         <Button
                           size='sm'
@@ -366,7 +366,7 @@ function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className='flex justify-end gap-1'>
+                    <div className='flex flex-wrap justify-end gap-1'>
                       {guest.status !== 'pending' && (
                         <Button
                           size='sm'
