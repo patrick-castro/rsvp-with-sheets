@@ -245,6 +245,9 @@ function FoundStep({ guests, onSuccess, onBack }: FoundStepProps) {
                         {...field}
                       />
                     </FormControl>
+                    <p className='text-right font-sans text-xs text-muted-foreground'>
+                      {(field.value ?? '').length} / 750
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
